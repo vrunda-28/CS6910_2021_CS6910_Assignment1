@@ -1,3 +1,12 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.datasets import cifar10
+
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import collections 
+from collections import deque
+np.random.seed(0)
+print(np.random.randn(1))
