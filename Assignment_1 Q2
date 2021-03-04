@@ -10,3 +10,43 @@ import collections
 from collections import deque
 np.random.seed(0)
 print(np.random.randn(1))
+
+
+def FFN_return_prob(input, No_hidden_layer, W, b):
+  h = input     
+  A = []        
+  H = []
+  for layer_index in range(No_hidden_layer):
+
+    a = np.dot(W[layer_index],h) + b[layer_index]
+    A.append(a)  
+    h= np.tanh(a)
+    H.append(h)
+
+  a = np.dot(W[-1],h) + b[-1]
+  A.append(a)
+  exp_scores = np.exp(a) 
+  output_prob = exp_scores / np.sum(exp_scores)
+  return output_prob,A,H
+
+
+def predict_model(output_prob):
+  output_class = np.argmax(output_prob) 
+  return output_class
+
+def cross_entropy_loss(ground_truth, output_prob):
+  index = np.argmax(ground_truth)
+  loss = -1*np.log(output_prob[index])
+  return loss
+
+def initialization(input_dimension, No_hidden_layer, No_of_Neurons):
+  W = [] 
+  b = []
+  start = input_dimension
+  for i in range(No_hidden_layer+1):
+    j = No_of_Neurons[i]
+    W.append(np.random.randn(j,start))
+    b.append(np.random.randn(j,1))
+    start = j
+  return W,b
+
