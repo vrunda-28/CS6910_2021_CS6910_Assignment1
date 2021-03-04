@@ -46,3 +46,51 @@ def initialization(input_dimension, No_hidden_layer, No_of_Neurons):
     start = j
   return W,b
 
+def backpropogation(ground_truth,output_prob,No_hidden_layer,No_of_Neurons,W,H,A):
+  true_class = np.argmax(ground_truth)
+  d_aL = output_prob.copy()
+  d_aL[true_class] =d_aL[true_class] - 1 #delta_a computed
+
+  d_h = []
+  d_W = []
+  d_a = [[d_aL]]
+  d_h_temp = []
+
+  for zz in reversed(range(No_hidden_layer)):
+
+    d_W.append(np.matmul(d_aL,H[zz].T))
+    d_h_temp = []
+
+    for i in range(No_of_Neurons[zz]):
+
+      temp = W[zz+1]
+      weight_column = temp[:,i]
+      check = np.dot(weight_column,d_aL)[0]
+      d_h_temp.append([check])
+
+    G_dash = 1-np.square(np.tanh(A[zz]))
+    d_a1 = np.multiply(d_h_temp,G_dash)
+    d_a.append([d_a1])
+    d_aL = d_a1
+    d_h.append([d_h_temp])
+
+  d_W.append(np.matmul(d_aL,input.T))
+  return d_W,d_a
+
+def get_average_hiddenlayer_wb(delta_list):
+  delta_average = []
+
+  for index in range (len(delta_list[0])):
+    average_array = [delta_list[i][index] for i in range (len(delta_list))]
+    delta_average.append(np.average(average_array,axis = 0))
+  return delta_average
+
+def weights_update(S,delta_S,eta):
+  updated_S = []
+  for i in range(len(S)):
+    x = S[i]
+    y = delta_S[i]
+    rr = x-eta*y
+    rr = rr.reshape(rr.shape[-2],rr.shape[-1])
+    updated_S.append(rr)
+  return updated_S
