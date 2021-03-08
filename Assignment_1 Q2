@@ -35,5 +35,46 @@ def predict_model(input):
     output_class = np.argmax(output_prob) 
     predict_label = predict_label.append(output_class)
     return predict_label
-    
+
+# Funding loss for each example
+def get_loss(input,ground_truth,loss_function):
+
+  loss = []
+  for i in range(len_dataset):
+    Y_pred = FFN_return_output(np.array([input[i]]))
+    if loss_function == 'square_error':
+      loss_temp = (np.sum((Y_pred-ground_truth[i].T)**2)*.5)
+      loss = loss.append(loss_temp)
+      del loss_temp
+    elif loss_function == 'cross_entropy':
+      loss_temp = np.log(np.add(Y_pred.T,eps)).dot(np.array([ground_truth[i]]).T)
+      loss = loss.append(loss_temp)
+      del loss_temp
+    else:
+      print('Function not in list')
+  return sum(loss)
+
+
+# Types of activation function
+def activation_function(activation,input):
+  if activation == 'sigmoid':
+    return (1/(1+np.exp(-input)))
+  elif activation == 'tanh':
+    return (np.tanh(input))
+  elif activation =='softmax':
+    return np.exp(input)/np.sum(np.exp(input))
+  else:
+    print('Function not in list')
+
+
+# Types of derivative activation function
+def activation_function_der(activation,input):
+  if activation == 'sigmoid':
+    temp =1/(1+np.exp(-input))
+    return (temp*(1-temp))
+  elif activation == 'tanh':
+    return (1-np.multiply(np.tanh(input), np.tanh(input)))
+  else:
+    print('Function not in list')
+
  
