@@ -7,90 +7,33 @@ from collections import deque
 np.random.seed(0)
 print(np.random.randn(1))
 
-
-def FFN_return_prob(input, No_hidden_layer, W, b):
+def FFN_return_output(input, No_hidden_layer, W, b):
   h = input     
-  A = []        
-  H = []
+  activation = []        
+  pre_activation = []
+
   for layer_index in range(No_hidden_layer):
 
     a = np.dot(W[layer_index],h) + b[layer_index]
-    A.append(a)  
-    h= np.tanh(a)
-    H.append(h)
+    pre_activation.append(a)
+
+    h = activation_function(a)
+    activation.append(h)
+    del a
 
   a = np.dot(W[-1],h) + b[-1]
-  A.append(a)
-  exp_scores = np.exp(a) 
-  output_prob = exp_scores / np.sum(exp_scores)
-  return output_prob,A,H
+  pre_activation.append(a)
 
+  activation.append(softmax(a))
+  return activation[-1]
 
-def predict_model(output_prob):
-  output_class = np.argmax(output_prob) 
-  return output_class
-
-def cross_entropy_loss(ground_truth, output_prob):
-  index = np.argmax(ground_truth)
-  loss = -1*np.log(output_prob[index])
-  return loss
-
-def initialization(input_dimension, No_hidden_layer, No_of_Neurons):
-  W = [] 
-  b = []
-  start = input_dimension
-  for i in range(No_hidden_layer+1):
-    j = No_of_Neurons[i]
-    W.append(np.random.randn(j,start))
-    b.append(np.random.randn(j,1))
-    start = j
-  return W,b
-
-def backpropogation(ground_truth,output_prob,No_hidden_layer,No_of_Neurons,W,H,A):
-  true_class = np.argmax(ground_truth)
-  d_aL = output_prob.copy()
-  d_aL[true_class] =d_aL[true_class] - 1 #delta_a computed
-
-  d_h = []
-  d_W = []
-  d_a = [[d_aL]]
-  d_h_temp = []
-
-  for zz in reversed(range(No_hidden_layer)):
-
-    d_W.append(np.matmul(d_aL,H[zz].T))
-    d_h_temp = []
-
-    for i in range(No_of_Neurons[zz]):
-
-      temp = W[zz+1]
-      weight_column = temp[:,i]
-      check = np.dot(weight_column,d_aL)[0]
-      d_h_temp.append([check])
-
-    G_dash = 1-np.square(np.tanh(A[zz]))
-    d_a1 = np.multiply(d_h_temp,G_dash)
-    d_a.append([d_a1])
-    d_aL = d_a1
-    d_h.append([d_h_temp])
-
-  d_W.append(np.matmul(d_aL,input.T))
-  return d_W,d_a
-
-def get_average_hiddenlayer_wb(delta_list):
-  delta_average = []
-
-  for index in range (len(delta_list[0])):
-    average_array = [delta_list[i][index] for i in range (len(delta_list))]
-    delta_average.append(np.average(average_array,axis = 0))
-  return delta_average
-
-def weights_update(S,delta_S,eta):
-  updated_S = []
-  for i in range(len(S)):
-    x = S[i]
-    y = delta_S[i]
-    rr = x-eta*y
-    rr = rr.reshape(rr.shape[-2],rr.shape[-1])
-    updated_S.append(rr)
-  return updated_S
+# Predict output prob for given input
+def predict_model(input):
+  predict_label = []
+  for i in range(len_dataset):
+    output_prob = FFN_return_output(np.array([input[i]]))
+    output_class = np.argmax(output_prob) 
+    predict_label = predict_label.append(output_class)
+    return predict_label
+    
+ 
