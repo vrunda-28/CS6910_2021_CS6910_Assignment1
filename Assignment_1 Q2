@@ -7,74 +7,111 @@ from collections import deque
 np.random.seed(0)
 print(np.random.randn(1))
 
-def FFN_return_output(input, No_hidden_layer, W, b):
-  h = input     
-  activation = []        
-  pre_activation = []
+class nn_from_scratch:
 
-  for layer_index in range(No_hidden_layer):
+  X_train = []
+  Y_train = []
+  X_test = []  
 
-    a = np.dot(W[layer_index],h) + b[layer_index]
-    pre_activation.append(a)
-
-    h = activation_function(a)
-    activation.append(h)
-    del a
-
-  a = np.dot(W[-1],h) + b[-1]
-  pre_activation.append(a)
-
-  activation.append(softmax(a))
-  return activation[-1]
-
-# Predict output prob for given input
-def predict_model(input):
-  predict_label = []
-  for i in range(len_dataset):
-    output_prob = FFN_return_output(np.array([input[i]]))
-    output_class = np.argmax(output_prob) 
-    predict_label = predict_label.append(output_class)
-    return predict_label
-
-# Funding loss for each example
-def get_loss(input,ground_truth,loss_function):
-
-  loss = []
-  for i in range(len_dataset):
-    Y_pred = FFN_return_output(np.array([input[i]]))
-    if loss_function == 'square_error':
-      loss_temp = (np.sum((Y_pred-ground_truth[i].T)**2)*.5)
-      loss = loss.append(loss_temp)
-      del loss_temp
-    elif loss_function == 'cross_entropy':
-      loss_temp = np.log(np.add(Y_pred.T,eps)).dot(np.array([ground_truth[i]]).T)
-      loss = loss.append(loss_temp)
-      del loss_temp
-    else:
-      print('Function not in list')
-  return sum(loss)
+  in_dim = 784
+  out_dim = 10 
+  W = []
+  W_zeros=[]
+  delta_W_memory=[]
 
 
-# Types of activation function
-def activation_function(activation,input):
-  if activation == 'sigmoid':
-    return (1/(1+np.exp(-input)))
-  elif activation == 'tanh':
-    return (np.tanh(input))
-  elif activation =='softmax':
-    return np.exp(input)/np.sum(np.exp(input))
-  else:
-    print('Function not in list')
+  previous_update = []
+  previous_m = []
+  previous_v = []
+  vt_hat_sqrt=[]
+  v_t_sqrt = []
+  eps = 0.0001
+
+  
+  def _init_(self):
+
+    self.No_hidden_layer = 2
+    self.No_of_Neurons = [100,100]
+    self.batch_size = 16
+
+    self.init_type = 'random'
+    self.activation_type = 'tanh'
+    self.loss_type = 'cross_entropy'
+    self.gradient_type = 'adam'
+
+    self.activation = []
+    self.pre_activation = []
+    self.eta = 0.001
+    self.gamma = 0.5
+    self.batch_index_dict = {}
 
 
-# Types of derivative activation function
-def activation_function_der(activation,input):
-  if activation == 'sigmoid':
-    temp =1/(1+np.exp(-input))
-    return (temp*(1-temp))
-  elif activation == 'tanh':
-    return (1-np.multiply(np.tanh(input), np.tanh(input)))
-  else:
-    print('Function not in list')
+    
+    #############################################################################
+    #initialisation function 
 
- 
+    def initialization(self):
+      if self.init_type == 'random':
+
+        start = self.in_dim
+        for i in range(self.No_hidden_layer):
+          j = self.No_of_Neurons[i]
+          self.W.append(np.random.random(j,start+1))
+          start = j
+        self.W.append(np.random.random(self.out_dim,j+1))
+
+      elif self.init_type == 'xavier':
+        self.W = []
+
+      else:
+        print('Initialisation type is not in list')
+
+    #############################################################################
+    #FFN block......
+
+    def FFN_return_output(self, input):
+      h = input     
+      self.activation = []        
+      self.pre_activation = []
+
+      for layer_index in range(self.No_hidden_layer):
+        a = np.dot(self.W[layer_index],np.vstack(h.T,1)
+        self.pre_activation.append(a)
+        h = self.activation_function(a)
+        self.activation.append(h)
+        del a
+
+      a = np.dot(self.W[-1],np.vstack(h.T,1))
+      self.pre_activation.append(a)
+      self.activation.append(self.softmax(a))
+      return self.activation[-1]
+
+
+    #################################################################################
+    # Predict output prob for given input
+    def predict_model(self, input):
+      predict_label = []
+      for i in range(input.shape[0]):
+        output_prob = self.FFN_return_output(np.array([input[i]]))
+        output_class = np.argmax(output_prob) 
+        predict_label = predict_label.append(output_class)
+        return predict_label
+
+    ##################################################################################
+    # Finding loss for each example
+    def loss_calculation(self, ground_truth, input):
+      loss = []
+      for i in range(input.shape[0]):
+        Y_pred = self.FFN_return_output(np.array([input[i]]))
+        if self.loss_function == 'cross_entropy':
+          loss_temp = np.log(np.add(Y_pred.T,eps)).dot(np.array([ground_truth[i]]).T)
+          loss = loss.append(loss_temp)
+          del loss_temp
+        elif self.loss_function == 'square_error':
+          loss_temp = (np.sum((Y_pred-ground_truth[i].T)*2).5)
+          loss = loss.append(loss_temp)
+          del loss_temp
+
+        else:
+          print('Loss Function not in list')
+      return np.mean(loss)
