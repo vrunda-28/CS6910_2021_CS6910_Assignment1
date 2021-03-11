@@ -115,3 +115,85 @@ class nn_from_scratch:
         else:
           print('Loss Function not in list')
       return np.mean(loss)
+    #Back propogation
+    ###############################################################################
+    # Types of loss optimiser
+    def loss_optimiser(self):
+      if loss_optimiser_type =='vanila':
+        self.do_vanila(self, input, ground_truth, delta_W_memory)
+      
+      elif loss_optimiser_type =='momentum':
+        self.do_momentum(self, input, ground_truth, delta_W_memory)
+
+      elif loss_optimiser_type =='nag':
+        self.do_NAG(self, input, ground_truth, delta_W_memory)
+
+      elif loss_optimiser_type =='rmsprop':
+        self.do_rmsprop(self, input, ground_truth, delta_W_memory)
+      
+      elif loss_optimiser_type =='adam':
+        self.do_adam(self, input, ground_truth, delta_W_memory)
+
+      elif loss_optimiser_type =='nadam':
+        self.do_nadam(self, input, ground_truth, delta_W_memory)
+
+      else:
+        print('Loss optimiser type is not in the list')
+    ###############################################################################
+    # Types of activation function
+    def activation_function(self,input):
+      if self.activation_type == 'sigmoid': 
+        return (1/(1+np.exp(-input)))
+
+      elif self.activation_type == 'tanh':
+        return np.tanh(input)
+
+      elif self.activation_type =='softmax':
+        return np.exp(input)/np.sum(np.exp(input))
+
+      elif self.activation_type =='ReLU':
+        return np.maximum(0, input)        
+      else:
+        print('Activation Function not in list') 
+
+    ######################################################################################
+    # Types of derivative activation function
+    def activation_function_der(self,input):
+      if self.activation_type == 'sigmoid': 
+        temp =1/(1+np.exp(-input))
+        return temp*(1-temp)
+
+      elif self.activation_type == 'tanh':
+        return (1-np.multiply(np.tanh(input), np.tanh(input)))
+
+      elif self.activation_type == 'ReLU':
+        temp = np.sign(input)
+        return np.maximum(0, temp)
+      else:
+        print('Derivative Function not in list')
+    ####################################################################################
+    ###################################################################################
+    #Types of loss optimiser
+    def do_vanila(self, input, ground_truth, delta_W_memory):
+      W_updated = self.W - np.multiply(self.eta, delta_W_memory)
+      return W_updated
+    #####################################################################################     
+    def do_momentum(self, input, ground_truth, delta_W_memory):
+      update_t = np.multiply(self.gamma, self.previous_update) + np.multiply(self.eta, delta_W_memory)#equation 1
+      W_updated = self.W - update_t #equation 2
+      self.previous_update = np.copy(update_t)
+      return W_updated
+    #####################################################################################
+    def do_NAG(self, input, ground_truth, delta_W_memory):
+      W_look_ahead = self.W - np.multiply(self.gamma, self.previous_update) #equation 1
+
+      W_temp1 = np.copy(self.W) #Temporary store as self.W is acquired gy gd
+      self.W = np.copy(W_look_ahead)
+      delta_W_look_ahead = self.gradient_descent(input, ground_truth)
+      self.W = np.copy(W_temp1) # Temporary restoring back
+
+      update_t = np.multiply(self.gamma, self.previous_update) + np.multiply(self.eta, delta_W_look_ahead) #equation 2
+      W_updated = self.W - update_t #equation 3
+
+      self.previous_update = np.copy(update_t)
+      return W_updated
