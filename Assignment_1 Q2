@@ -122,3 +122,185 @@ class nn_from_scratch:
       else:
         print("Wrong loss function entered")
     return np.mean(loss)
+
+################################################################################
+
+  # Update parameters in batches
+  def batch_update(self,index):
+
+    delta_W_memory=np.copy(self.W_zeros)
+    for i in range(index*self.batch_size,(index+1)*self.batch_size):  
+      tmp = self.gradient_descent(np.array([self.X_train[i]]),np.array([self.Y_train[i]]))
+      delta_W_memory = np.add(tmp,delta_W_memory)
+      del tmp
+    W_batch_update = self.loss_optimiser(delta_W_memory, self.X_train, self.Y_train)
+    self.W = W_batch_update
+    del W_batch_update
+
+################################################################################
+
+  # Back propogation algorithm returning gradients
+  def gradient_descent(self,input,ground_truth) :
+    self.FFN_return_output(input)
+    
+    delta_a = []
+    delta_W = []
+    if self.loss_type == 'square_error':
+      print("Mean-squared loss activated")
+    elif self.loss_type == 'cross_entropy':
+      delta_a.append(self.activation[-1]-ground_truth.T)
+    else:
+      print("Wrong loss function entered")
+
+    for i in reversed(range(self.No_hidden_layer)):
+      delta_h = self.W[i+1].T.dot(delta_a[-1])
+      delta_a.append(delta_h[:-1,:] * self.activation_function_der(self.pre_activation[i]))
+      del delta_h
+    for index in range(self.No_hidden_layer+1):
+      rev_index = self.No_hidden_layer-index
+      if index == 0:
+        output_layer = np.vstack((input.T,1))
+      else:
+        output_layer = np.vstack((self.activation[index -1],1))
+      delta_W.append(delta_a[rev_index].dot(output_layer.T))
+    return delta_W
+
+################################################################################
+  
+  #Types of Loss optimiser functions
+  def loss_optimiser(self, delta_W_memory, input, ground_truth):
+    if self.gradient_type == 'vanila':
+      W_updated = self.do_vanila(delta_W_memory, input, ground_truth)
+
+    elif self.gradient_type == 'momentum':
+      W_updated = self.do_momentum(delta_W_memory, input, ground_truth)
+
+    elif self.gradient_type == 'nag':
+      W_updated = self.do_NAG(delta_W_memory, input, ground_truth)
+
+    elif self.gradient_type == 'rmsprop':
+      W_updated = self.do_rmsprop(delta_W_memory, input, ground_truth)
+
+    elif self.gradient_type == 'adam':
+      W_updated = self.do_adam(delta_W_memory, input, ground_truth)
+
+    elif self.gradient_type == 'nadam':
+      W_updated = self.do_nadam(delta_W_memory, input, ground_truth)
+
+    else:
+      print('Loss optimiser type is not in the list')
+    return W_updated
+
+################################################################################
+  
+  #Computing vanila gradient descent
+  def do_vanila(self, delta_W_memory, input, ground_truth):
+    W_updated = self.W - np.multiply(self.eta , delta_W_memory)
+    return W_updated
+
+################################################################################
+  
+  #Computing momentum gradient descent
+  def do_momentum(self, delta_W_memory, input, ground_truth):
+    update_t = np.multiply(self.gamma, self.previous_update) + np.multiply(self.eta, delta_W_memory)#equation 1
+    W_updated = self.W - update_t #equation 2
+    self.previous_update = np.copy(update_t)
+    return W_updated
+
+################################################################################
+  
+  #Computing nag gradient descent
+  def do_nag(self, delta_W_memory, input, ground_truth):
+    W_look_ahead = self.W - np.multiply(self.gamma, self.previous_update) #equation 1
+
+    W_temp1 = np.copy(self.W) #Temporary store as self.W is acquired gy gd
+    self.W = np.copy(W_look_ahead)
+    delta_W_look_ahead = self.gradient_descent(input, ground_truth)
+    self.W = np.copy(W_temp1) # Temporary restoring back
+
+    update_t = np.multiply(self.gamma, self.previous_update) + np.multiply(self.eta, delta_W_look_ahead) #equation 2
+    W_updated = self.W - update_t #equation 3
+
+    self.previous_update = np.copy(update_t)
+    return W_updated
+
+################################################################################
+  
+  #Computing rmsprop gradient descent
+  def do_rmsprop(self, delta_W_memory, input, ground_truth):
+    
+    self.v_t_sqrt = np.copy(self.W_zeros)
+    delta_W_square = np.multiply(delta_W_memory, delta_W_memory)
+    v_t = np.multiply(self.beta, self.previous_v) + np.multiply(1-self.beta, delta_W_square)#equation 1
+
+    for i in range(len(v_t)):
+      self.v_t_sqrt[i] = (self.eta/np.sqrt(v_t[i])+self.eps)
+
+    W_updated = self.W - np.multiply(self.v_t_sqrt,delta_W_memory)#equation 2
+    self.previous_v = np.copy(v_t)
+    return W_updated
+
+################################################################################
+  
+  #Computing adam gradient descent
+  def do_adam(self, delta_W_memory, input, ground_truth):
+    
+    self.vt_hat_sqrt=np.copy(self.W_zeros)
+    m_t = np.multiply(self.beta_1 , self.previous_m) + np.multiply((1-self.beta_1) , delta_W_memory)
+    v_t = np.multiply(self.beta_2 , self.previous_v) + np.multiply( (1-self.beta_2), np.multiply(delta_W_memory,delta_W_memory))
+    mt_hat = m_t/(1-np.power(self.beta_1, (self.t+1)))   
+    vt_hat = v_t/(1-np.power(self.beta_2, (self.t+1)))
+    for i in range(len(vt_hat)):                  
+        self.vt_hat_sqrt[i]=self.eta/(np.sqrt(vt_hat[i]+self.eps))   
+    W_updated = self.W - np.multiply(self.vt_hat_sqrt, mt_hat)
+    self.previous_m = np.copy(m_t)
+    self.previous_v = np.copy(v_t)
+    return W_updated
+
+################################################################################
+  
+  #Computing nadam gradient descent
+  def do_nadam(self, delta_W_memory, input, ground_truth):
+    W_updated = []
+    return W_updated
+
+################################################################################
+  
+  # Types of activation function
+  def activation_function(self,input):
+
+    if self.activation_type == 'sigmoid':
+      return (1/(1+np.exp(-input)))
+    elif self.activation_type == 'tanh':
+      return (np.tanh(input))
+    elif self.activation_type =='softmax':
+      return np.exp(input)/np.sum(np.exp(input))
+    elif self.activation_type =='ReLU':
+      return np.maximum(0, input)
+    else:
+      print('Activation Function not in list')
+
+###############################################################################
+  
+  #Computing derivative of given activation function
+  def activation_function_der(self,input):
+
+    if self.activation_type == 'sigmoid': 
+      temp = 1/(1+np.exp(-input))
+      return (temp*(1-temp))
+    elif self.activation_type == 'tanh':
+      return (1-np.multiply(np.tanh(input), np.tanh(input)))
+    elif self.activation_type == 'ReLU':
+      temp = np.sign(input)
+      return np.maximum(0, temp)
+    else:
+      print('Derivative Function not in list')
+
+###############################################################################
+
+  # Softmax
+  def softmax(self,x):
+  
+    x = np.exp(x)/np.sum(np.exp(x))
+    x[np.isnan(x)] = 1
+    return x
