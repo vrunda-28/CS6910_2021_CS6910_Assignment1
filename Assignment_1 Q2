@@ -1,6 +1,6 @@
 import numpy as np
-np.random.seed(1234)
-from operator import truediv
+np.random.seed(0)
+
 
 class nn_from_scratch:
 
@@ -304,3 +304,67 @@ class nn_from_scratch:
     x = np.exp(x)/np.sum(np.exp(x))
     x[np.isnan(x)] = 1
     return x
+###############################################################################
+
+# Example of loading the fashion mnist dataset
+from matplotlib import pyplot
+from keras.datasets import fashion_mnist
+from sklearn.model_selection import train_test_split
+
+# Load dataset
+(X_train, Y_train), (X_test, Y_test) = fashion_mnist.load_data()
+
+# Reshaping dataset
+X_train = X_train.reshape(len(X_train),784)
+X_test = X_test.reshape(len(X_test),784)
+
+# Creating object
+FFN = nn_from_scratch()
+
+# Normalizing Dataset
+train_true_labels = Y_train
+X_train = (X_train - np.mean(X_train,axis=0))/(np.std(X_train,axis=0) + FFN.eps)
+X_test = (X_test - np.mean(X_test,axis=0))/(np.std(X_test,axis=0) + FFN.eps)
+
+#splitting train and validation data
+X_train, X_validation,Y_train,Y_validation = train_test_split(X_train,Y_train, test_size=0.1, shuffle=True)
+val_true_labels = Y_validation
+
+FFN.X_train = X_train
+FFN.X_test = X_test
+FFN.X_validation = X_validation
+
+#onehot encoding
+FFN.Y_train = np.eye(FFN.out_dim)[Y_train]
+FFN.Y_validation = np.eye(FFN.out_dim)[Y_validation]
+
+###############################################################################
+
+for epoch in range(FFN.epoch_num):
+  delta_W_memory = np.copy(FFN.W_zeros)
+  time_step = 0
+  print('Epoch==>',epoch)
+  
+  No_of_batches = (FFN.X_train).shape[0]//FFN.batch_size
+  for i in range(No_of_batches):
+    FFN.batch_update(i)
+    FFN.t += 1
+    time_step += 1
+      
+  train_loss = FFN.loss_calculation(FFN.X_train, FFN.Y_train)
+  train_pred_labels = FFN.predict_model(X_train)
+  validation_loss = FFN.loss_calculation(FFN.X_validation,FFN.Y_validation)
+  val_pred_labels = FFN.predict_model(X_train)
+  training_accuracy = sum([1 for i,j in zip(train_pred_labels,train_true_labels) if i==j])/len(train_pred_labels)
+  validation_accuracy = sum([1 for i,j in zip(val_pred_labels,val_true_labels) if i==j])/len(val_pred_labels)
+  
+  print('   Train_loss==> ',train_loss)
+  print('   Val_loss====> ',validation_loss)
+  print('')
+  print('   Train_acc==> ',training_accuracy)
+  print('   Val_acc=====> ',validation_accuracy)
+
+test_label = FFN.predict_model(FFN.X_test)      
+
+accuracy = sum([1 for i,j in zip(test_label,Y_test) if i==j])/len(Y_test)
+print('Final_accuracy==>  ',accuracy)
