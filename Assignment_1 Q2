@@ -1,199 +1,124 @@
-import os
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import collections 
-from collections import deque
-np.random.seed(0)
-print(np.random.randn(1))
+np.random.seed(1234)
+from operator import truediv
 
 class nn_from_scratch:
 
   X_train = []
   Y_train = []
-  X_test = []  
+  X_validation = []
+  Y_validation = []
+  X_test = []
 
   in_dim = 784
-  out_dim = 10 
+  out_dim = 10
   W = []
-  W_zeros=[]
-  delta_W_memory=[]
-
-
+  W_zeros = []
+  delta_W_memory = []
+ 
   previous_update = []
   previous_m = []
   previous_v = []
   vt_hat_sqrt=[]
-  v_t_sqrt = []
-  eps = 0.0001
-
+  v_t_sqrt = []      #use this in rmsprop
+  eps = 0.0001    
+  beta_1 = 0.9
+  beta_2 = 0.999
+  beta = 0.9
+  t = 0
   
-  def _init_(self):
+  
+  def __init__(self):
 
     self.No_hidden_layer = 2
     self.No_of_Neurons = [100,100]
-    self.batch_size = 16
-
+    self.batch_size = 64
+    self.epoch_num = 2
     self.init_type = 'random'
     self.activation_type = 'tanh'
     self.loss_type = 'cross_entropy'
-    self.gradient_type = 'adam'
+    self.gradient_type = 'momentum'
 
     self.activation = []
     self.pre_activation = []
-    self.eta = 0.001
+    self.eta = 0.01
     self.gamma = 0.5
-    self.batch_index_dict = {}
 
-
+################################################################################    
     
-    #############################################################################
-    #initialisation function 
+    #Initializing weights with given type
+    if self.init_type == 'random':
+      start = self.in_dim
+      for i in range(self.No_hidden_layer):
+        j = self.No_of_Neurons[i]
+        self.W.append(np.random.randn(j,start+1))
+        start = j
+      self.W.append(np.random.randn(self.out_dim,j+1))
+    elif self.init_type == 'xavier':
+      self.W = []
+    else:
+      print('Initialisation type is not in list')
 
-    def initialization(self):
-      if self.init_type == 'random':
+################################################################################
+    
+    # Initializing all temporary parameters to zero
+    start = self.in_dim
+    for i in range(self.No_hidden_layer):
+      j = self.No_of_Neurons[i]
+      self.W_zeros.append(np.zeros((j,start+1)))
+      start = j
+    self.W_zeros.append(np.zeros((self.out_dim,j+1)))
 
-        start = self.in_dim
-        for i in range(self.No_hidden_layer):
-          j = self.No_of_Neurons[i]
-          self.W.append(np.random.random(j,start+1))
-          start = j
-        self.W.append(np.random.random(self.out_dim,j+1))
 
-      elif self.init_type == 'xavier':
-        self.W = []
+    self.previous_update = np.copy(self.W_zeros)
+    self.previous_m = np.copy(self.W_zeros)
+    self.previous_v = np.copy(self.W_zeros)       
 
-      else:
-        print('Initialisation type is not in list')
+################################################################################
+ 
+  #Forward_propogation algorithm returning output probability vector
+  def FFN_return_output(self, input):
+    h = (input.T).copy()     
+    self.activation = []        
+    self.pre_activation = []
 
-    #############################################################################
-    #FFN block......
-
-    def FFN_return_output(self, input):
-      h = input     
-      self.activation = []        
-      self.pre_activation = []
-
-      for layer_index in range(self.No_hidden_layer):
-        a = np.dot(self.W[layer_index],np.vstack(h.T,1)
-        self.pre_activation.append(a)
-        h = self.activation_function(a)
-        self.activation.append(h)
-        del a
-
-      a = np.dot(self.W[-1],np.vstack(h.T,1))
+    for i in range(self.No_hidden_layer):
+      a = np.dot(self.W[i],np.vstack((h,1)))
       self.pre_activation.append(a)
-      self.activation.append(self.softmax(a))
-      return self.activation[-1]
+      h = self.activation_function(a)
+      self.activation.append(h)
+      h = self.activation[-1]
+      del a
 
+    a = np.dot(self.W[-1],np.vstack((h,1)))
+    self.pre_activation.append(a)
+    self.activation.append(self.softmax(a))
+    return self.activation[-1]
 
-    #################################################################################
-    # Predict output prob for given input
-    def predict_model(self, input):
-      predict_label = []
-      for i in range(input.shape[0]):
-        output_prob = self.FFN_return_output(np.array([input[i]]))
-        output_class = np.argmax(output_prob) 
-        predict_label = predict_label.append(output_class)
-        return predict_label
+################################################################################
+  
+  # Computing labels for given input
+  def predict_model(self,input):
+    label_pred = []
+    for i in range(input.shape[0]):
+      Y_pred = self.FFN_return_output(np.array([input[i]]))
+      label_pred.append(np.argmax(Y_pred))
+    return label_pred
 
-    ##################################################################################
-    # Finding loss for each example
-    def loss_calculation(self, ground_truth, input):
-      loss = []
-      for i in range(input.shape[0]):
-        Y_pred = self.FFN_return_output(np.array([input[i]]))
-        if self.loss_function == 'cross_entropy':
-          loss_temp = np.log(np.add(Y_pred.T,eps)).dot(np.array([ground_truth[i]]).T)
-          loss = loss.append(loss_temp)
-          del loss_temp
-        elif self.loss_function == 'square_error':
-          loss_temp = (np.sum((Y_pred-ground_truth[i].T)*2).5)
-          loss = loss.append(loss_temp)
-          del loss_temp
+################################################################################
 
-        else:
-          print('Loss Function not in list')
-      return np.mean(loss)
-    #Back propogation
-    ###############################################################################
-    # Types of loss optimiser
-    def loss_optimiser(self):
-      if loss_optimiser_type =='vanila':
-        self.do_vanila(self, input, ground_truth, delta_W_memory)
-      
-      elif loss_optimiser_type =='momentum':
-        self.do_momentum(self, input, ground_truth, delta_W_memory)
+  # Computing Loss          
+  def loss_calculation(self, input,ground_truth):
 
-      elif loss_optimiser_type =='nag':
-        self.do_NAG(self, input, ground_truth, delta_W_memory)
-
-      elif loss_optimiser_type =='rmsprop':
-        self.do_rmsprop(self, input, ground_truth, delta_W_memory)
-      
-      elif loss_optimiser_type =='adam':
-        self.do_adam(self, input, ground_truth, delta_W_memory)
-
-      elif loss_optimiser_type =='nadam':
-        self.do_nadam(self, input, ground_truth, delta_W_memory)
-
+    loss = []
+    label = []
+    for i in range(input.shape[0]) :
+      Y_pred = self.FFN_return_output(np.array([input[i]]))
+      label.append(np.argmax(Y_pred))
+      if self.loss_type == 'cross_entropy':
+        loss.append(np.multiply(np.log(np.add(Y_pred.T,self.eps)).dot(np.array([ground_truth[i]]).T), (-1)))                     
+      elif self.loss_type == 'square_error':
+        loss.append(np.sum((Y_pred-ground_truth[i].T)**2)*.5)
       else:
-        print('Loss optimiser type is not in the list')
-    ###############################################################################
-    # Types of activation function
-    def activation_function(self,input):
-      if self.activation_type == 'sigmoid': 
-        return (1/(1+np.exp(-input)))
-
-      elif self.activation_type == 'tanh':
-        return np.tanh(input)
-
-      elif self.activation_type =='softmax':
-        return np.exp(input)/np.sum(np.exp(input))
-
-      elif self.activation_type =='ReLU':
-        return np.maximum(0, input)        
-      else:
-        print('Activation Function not in list') 
-
-    ######################################################################################
-    # Types of derivative activation function
-    def activation_function_der(self,input):
-      if self.activation_type == 'sigmoid': 
-        temp =1/(1+np.exp(-input))
-        return temp*(1-temp)
-
-      elif self.activation_type == 'tanh':
-        return (1-np.multiply(np.tanh(input), np.tanh(input)))
-
-      elif self.activation_type == 'ReLU':
-        temp = np.sign(input)
-        return np.maximum(0, temp)
-      else:
-        print('Derivative Function not in list')
-    ####################################################################################
-    ###################################################################################
-    #Types of loss optimiser
-    def do_vanila(self, input, ground_truth, delta_W_memory):
-      W_updated = self.W - np.multiply(self.eta, delta_W_memory)
-      return W_updated
-    #####################################################################################     
-    def do_momentum(self, input, ground_truth, delta_W_memory):
-      update_t = np.multiply(self.gamma, self.previous_update) + np.multiply(self.eta, delta_W_memory)#equation 1
-      W_updated = self.W - update_t #equation 2
-      self.previous_update = np.copy(update_t)
-      return W_updated
-    #####################################################################################
-    def do_NAG(self, input, ground_truth, delta_W_memory):
-      W_look_ahead = self.W - np.multiply(self.gamma, self.previous_update) #equation 1
-
-      W_temp1 = np.copy(self.W) #Temporary store as self.W is acquired gy gd
-      self.W = np.copy(W_look_ahead)
-      delta_W_look_ahead = self.gradient_descent(input, ground_truth)
-      self.W = np.copy(W_temp1) # Temporary restoring back
-
-      update_t = np.multiply(self.gamma, self.previous_update) + np.multiply(self.eta, delta_W_look_ahead) #equation 2
-      W_updated = self.W - update_t #equation 3
-
-      self.previous_update = np.copy(update_t)
-      return W_updated
+        print("Wrong loss function entered")
+    return np.mean(loss)
