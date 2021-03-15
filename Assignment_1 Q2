@@ -1,5 +1,5 @@
 import numpy as np
-np.random.seed(0)
+np.random.seed(10)
 
 
 class nn_from_scratch:
