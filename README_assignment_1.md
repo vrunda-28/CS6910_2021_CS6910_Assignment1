@@ -70,3 +70,11 @@ To check out the results we have obtained in colab refer this file
 
 Here in this file all practice and raw codes are available
 
+### Question_1_and_confusion_matrix.py
+
+In this file code for question 1 and confusion matrix is there.
+Note: For confusion matrix Y_test and test_labels should be provided.
+
+### [Check out our project workspace](https://wandb.ai/vrunda/CS6910_Assignment1?workspace=user-vrunda)
+### [Check out project detailed report](https://wandb.ai/vrunda/CS6910_Assignment1/reports/CS6910-Assignment-1--Vmlldzo1MzI4NjE)
+
