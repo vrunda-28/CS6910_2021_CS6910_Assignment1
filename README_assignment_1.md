@@ -60,7 +60,7 @@ We have seperatley defined all the hyperparameter configuration in the "__init__
     self.loss_type = 'cross_entropy'
     self.gradient_type = 'nadam' # vanila, momentum, nag, rmsprop, adam, nadam
 ```
-_Note: Number of neurons should be kept in a list for eg: [100,100,100], [64,32], etc
+Note: Number of neurons should be kept in a list for eg: [100,100,100], [64,32], etc
 
 ### Assignment_1_colab_wandb.ipynb
 
