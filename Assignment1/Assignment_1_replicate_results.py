@@ -34,11 +34,11 @@ class nn_from_scratch:
     self.No_of_Neurons = [100,100]
     self.batch_size = 64
     self.epoch_num = 5
-    self.init_type = 'random'
-    self.activation_type = 'sigmoid'
+    self.init_type = 'xavier' #random
+    self.activation_type = 'ReLU' #sigmoid, tanh
     self.loss_type = 'cross_entropy'
-    self.gradient_type = 'momentum'
-
+    self.gradient_type = 'nadam' # vanila, momentum, nag, rmsprop, adam, nadam
+    
     self.decay_factor = 0
     self.activation = []
     self.pre_activation = []
